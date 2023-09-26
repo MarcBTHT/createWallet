@@ -35,33 +35,47 @@ function createMasterKeys(rootSeedHex) {
 masterKeys = createMasterKeys(rootSeedHex);
 
 const index = 0; // Index de la clé enfant
+const derivationPath = 'm/0/1/2'; // Chemin de dérivation complet
 
 
-function createChildKeys(parentKeys, index) {
+function createChildKeys(parentKeys, index, derivationPath) {
 
-// Conversion des valeurs hexadécimales en buffers.
-const parentPrivateKey = Buffer.from(parentKeys.privateKey, 'hex');
-const parentPublicKey = Buffer.from(parentKeys.publicKey, 'hex');
-const parentChainCode = Buffer.from(parentKeys.chainCode, 'hex');
+    // Conversion des valeurs hexadécimales en buffers.
+    const parentPrivateKey = Buffer.from(parentKeys.privateKey, 'hex');
+    const parentPublicKey = Buffer.from(parentKeys.publicKey, 'hex');
+    const parentChainCode = Buffer.from(parentKeys.chainCode, 'hex');
 
-// Concaténation de la clé publique parente et de l'index.
-const data = Buffer.concat([parentPublicKey, Buffer.alloc(4, 0), Buffer.alloc(4, index)]);
+    // Séparation du chemin de dérivation en composants.
+    const components = derivationPath.split('/');
 
-// Calcul HMAC-SHA512.
-const hmac = crypto.createHmac('sha512', parentChainCode);
-const hmacResult = hmac.update(data).digest();
+    // Création de la donnée à utiliser pour le calcul HMAC-SHA512.
+    let data = parentPublicKey;
+    for (let i = 1; i < components.length; i++) {
+    const indexBuffer = Buffer.alloc(4);
+    indexBuffer.writeUInt32BE(parseInt(components[i], 10));
+    data = Buffer.concat([data, indexBuffer]);
+    }
 
-// Séparation des résultats en clé privée enfant, clé publique enfant et code de chaîne enfant.
-const childPrivateKey = hmacResult.slice(0, 32);
-const childChainCode = hmacResult.slice(32);
+    // Ajouter l'index de la clé enfant.
+    const indexBuffer = Buffer.alloc(4);
+    indexBuffer.writeUInt32BE(index);
+    data = Buffer.concat([data, indexBuffer]);
 
-const keyPair = ec.keyFromPrivate(childPrivateKey);
-    const childPublicKey = keyPair.getPublic('hex');
+    // Calcul HMAC-SHA512.
+    const hmac = crypto.createHmac('sha512', parentChainCode);
+    const hmacResult = hmac.update(data).digest();
+
+    // Séparation des résultats en clé privée enfant et code de chaîne enfant.
+    const childPrivateKey = hmacResult.slice(0, 32); // 32 premiers octets pour la clé privée
+    const childChainCode = hmacResult.slice(32);     // Les 32 octets suivants pour le code de chaîne
+
+    const keyPair = ec.keyFromPrivate(childPrivateKey);
+        const childPublicKey = keyPair.getPublic('hex');
 
 
-console.log('Clé privée enfant (Hex) :', childPrivateKey.toString('hex'));
-console.log('Clé publique enfant (Hex) :', childPublicKey.toString('hex'));
-console.log('Code de chaîne enfant (Hex) :', childChainCode.toString('hex'));
+    console.log('Clé privée enfant (Hex) :', childPrivateKey.toString('hex'));
+    console.log('Clé publique enfant (Hex) :', childPublicKey.toString('hex'));
+    console.log('Code de chaîne enfant (Hex) :', childChainCode.toString('hex'));
 
 
 
@@ -69,4 +83,4 @@ console.log('Code de chaîne enfant (Hex) :', childChainCode.toString('hex'));
 }
 
 
-createChildKeys(masterKeys, index);
+createChildKeys(masterKeys, index, derivationPath);
