@@ -1,5 +1,12 @@
 const crypto = require('crypto');
 const fs = require('fs');
+const readline = require('readline');
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
 
 //checksum step
 /// Convert hexadecimal to a bit string
@@ -80,58 +87,90 @@ function main() {
     // Q1
     // Generate a 128-bit (16-byte) random number
     const entropy_buffer = crypto.randomBytes(16);
-    console.log(entropy_buffer);
+    console.log("Random number:",entropy_buffer);
     // Convert buffer to hexadecimal 
     const buffer_hexString = entropy_buffer.toString('hex');
     console.log("entropy_hex",buffer_hexString);
     // Convert Entropy_hexadecimal in bit
     entropy_buffer_bit = hexToBitString(buffer_hexString);
     console.log("entropy_bit:",entropy_buffer_bit);
+    console.log("");
 
-    //Q2
-    // Calculate the SHA-256 hash of the entropy_buffer
-    const sha256_hash = crypto.createHash('sha256').update(entropy_buffer).digest('hex');
-    console.log("SHA-256 Hash:", sha256_hash);
+    rl.question("Voulez-vous représenter cette seed en binaire et la découper en lots de 11 bits ? (o/n): ", (answer) => {
+        if (answer.toLowerCase() === 'o') {
+            //Q2
+            // Calculate the SHA-256 hash of the entropy_buffer
+            const sha256_hash = crypto.createHash('sha256').update(entropy_buffer).digest('hex');
+            console.log("Entropy SHA-256 Hash:", sha256_hash);
 
-    //Convert the SHA256 in Bit
-    const sha256BitString = hexToBitString(sha256_hash);
-    console.log("SHA-256 Bit String:", sha256BitString);
+            //Convert the SHA256 in Bit
+            const sha256BitString = hexToBitString(sha256_hash);
+            console.log("Entropy SHA-256 Bit String:", sha256BitString);
 
-    //Add to the entropy number the 4 bits of the SHA256 hash
-    const bit_132_hash = checksum(sha256BitString,entropy_buffer_bit);
-    console.log("132 bits:", bit_132_hash);
-    
-    // Cut in 12 slot of 11 bits
-    const segments = split_hash(bit_132_hash);
-    console.log(segments);
+            //Add to the entropy number the 4 bits of the SHA256 hash
+            const bit_132_hash = checksum(sha256BitString,entropy_buffer_bit);
+            console.log("132 bits:", bit_132_hash);
+            
+            // Cut in 12 slots of 11 bits
+            const segments = split_hash(bit_132_hash);
+            console.log("132 bits divided", segments);
+            console.log("");
 
-    //Q3
-    create_word_list((err, wordlist) => {
-        if (err) {
-          // Gérer l'erreur
-          console.error("Erreur lors de la création de la liste de mots :", err);
-          return;
+            rl.question("Voulez-vous Attribuer à chaque lot un mot selon la liste BIP 39 et afficher la seed en mnémonique  ? (o/n): ", (answer) => {
+                if (answer.toLowerCase() === 'o') {
+                    //Q3
+                    create_word_list((err, wordlist) => {
+                        if (err) {
+                        // Gérer l'erreur
+                        console.error("Erreur lors de la création de la liste de mots :", err);
+                        return;
+                        }
+                        
+                        const seed = mnemonic_phrase(segments, wordlist);
+                        console.log("Mnemonic Phrase:", seed);
+                        console.log("");
+                        
+                        rl.question("Voulez-vous importer une seed mnémonique ? A partir de la seed précédement crée (o/n) :", (answer) => {
+                            if (answer.toLowerCase() === 'o') {
+                                //Q4
+                                const mnemonic = seed;
+                                createWordMap((err, wordMap) => {
+                                    if (err) {
+                                    console.error("Error creating word map:", err);
+                                    return;
+                                    }
+                                    const bitString = mnemonicToBits(mnemonic, wordMap);
+                                    console.log("132 bits Import:", bitString);
+                                    rl.close();
+                                });
+                            } else {
+                                console.log("Programme terminé.");
+                                rl.close();
+                            }
+                        });
+                    });
+                } else {
+                    console.log("Programme terminé.");
+                    rl.close();
+                }
+            });
+                    
+        } else {
+            console.log("Programme terminé.");
+            rl.close();
         }
-        
-        const seed = mnemonic_phrase(segments, wordlist);
-        console.log("Mnemonic Phrase:", seed);
-
-        //Q4
-        const mnemonic = seed;
-        createWordMap((err, wordMap) => {
-            if (err) {
-            console.error("Error creating word map:", err);
-            return;
-            }
-            const bitString = mnemonicToBits(mnemonic, wordMap);
-            console.log("132 bits:", bitString);
-        });
-        
     });
-    
 }
 
-main();
+rl.question("Voulez-vous générer un nombre aléatoire de 128 bits ? (o/n): ", (answer) => {
+    if (answer.toLowerCase() === 'o') {
+        main();;
+    } else {
+        console.log("Programme terminé.");
+        rl.close();
+    }
+});
+
 
 
 
