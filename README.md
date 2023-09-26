@@ -22,8 +22,7 @@ This program generates a BIP-39 compliant mnemonic phrase for creating a cryptoc
 
 Note: Ensure you have the required dependencies (crypto, fs, and readline) installed in your environment to run this program.
 
-## Disclaimer
-This program is for educational purposes only. Always follow best practices for securing your cryptocurrency wallets and never share your mnemonic phrase with anyone.
+
 
 
 
@@ -68,3 +67,6 @@ This code demonstrates the generation of hierarchical deterministic (HD) keys us
 2. Use the `createChildKeys` function to generate child keys based on the parent keys and an index.
 3. Utilize the `createChildKeysAtDerivationLevel` function to generate child keys at a specific derivation level, index, and based on the parent keys.
 
+
+## Disclaimer
+This program is for educational purposes only. Always follow best practices for securing your cryptocurrency wallets and never share your mnemonic phrase with anyone.
